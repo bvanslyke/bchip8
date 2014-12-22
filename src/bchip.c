@@ -3,6 +3,9 @@
 TODO:
   - make waitkey work
   - fix bad performance
+  - bcd instruction
+  - font address instruction
+  - delay and sound timers
 */
 
 #include <assert.h>
