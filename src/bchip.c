@@ -1,7 +1,8 @@
 
 /*
 TODO:
-  - delay and sound timers
+  - test delay timer
+  - implement sound timer
 */
 
 #include <assert.h>
@@ -26,7 +27,7 @@ struct machine init_machine = {
 	.cycles = 0,
 	.delay_timer = 0,
 	.sound_timer = 0,
-	.waiting_for_key = -1
+	.waiting_for_key = -1,
 };
 
 uint8_t font[] = {
@@ -219,10 +220,16 @@ int machine_loop(struct machine *machine, SDL_Renderer *renderer) {
 	int running = 1;
 	int stepping = 1;
 
+	Uint32 ticks;
 	SDL_Event e;
 
 	while (running) {
 		if (!stepping && machine->waiting_for_key < 0) {
+			if (ticks > TICK_MS) {
+				int new_delay = machine->delay_timer - (ticks / TICK_MS);
+				machine->delay_timer = new_delay > 0 ? new_delay : 0;
+				ticks = 0;
+			}
 			running = machine_cycle(machine);
 		}
 
@@ -248,6 +255,8 @@ int machine_loop(struct machine *machine, SDL_Renderer *renderer) {
 		if (refresh) {
 			SDL_RenderPresent(renderer);
 		}
+
+		ticks += SDL_GetTicks();
 	}
 	return 0;
 }

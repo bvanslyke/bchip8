@@ -19,6 +19,8 @@
 
 #define CYCLES_PER_FRAME 7
 
+#define TICK_MS 17 // 60fps = 17ms per frame
+
 struct machine {
 	uint16_t pc;
 	uint16_t _address;
@@ -29,7 +31,7 @@ struct machine {
 	int _pixels[PIXELS];
 	int keys[KEYS_LEN];
 	int cycles;
-	int delay_timer;
+	uint8_t delay_timer;
 	int sound_timer;
 	int waiting_for_key;
 };
