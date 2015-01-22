@@ -12,7 +12,7 @@ To run a Chip8 program you can either
 
 To compile you need the development library for SDL2.
 
-Some of the example programs are from here: http://johnearnest.github.io/Octo/
+You can find some example programs here: http://johnearnest.github.io/Octo/
 
 ## MIT License
 
