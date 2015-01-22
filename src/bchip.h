@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 
+
 #define MEMORY_LEN 4096
 #define REGISTERS_LEN 16
 #define MAX_PROGRAM_LEN 4096
@@ -32,7 +33,7 @@ struct machine {
 	int keys[KEYS_LEN];
 	int cycles;
 	uint8_t delay_timer;
-	int sound_timer;
+	uint8_t sound_timer;
 	int waiting_for_key;
 };
 

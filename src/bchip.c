@@ -27,7 +27,7 @@ struct machine init_machine = {
 	.cycles = 0,
 	.delay_timer = 0,
 	.sound_timer = 0,
-	.waiting_for_key = -1,
+	.waiting_for_key = -1
 };
 
 uint8_t font[] = {
@@ -216,6 +216,7 @@ void dispatch_keys(SDL_Event *e, struct machine *machine, int *stepping,
 	}
 }
 
+
 int machine_loop(struct machine *machine, SDL_Renderer *renderer) {
 	int running = 1;
 	int stepping = 1;
@@ -230,6 +231,7 @@ int machine_loop(struct machine *machine, SDL_Renderer *renderer) {
 				machine->delay_timer = new_delay > 0 ? new_delay : 0;
 				ticks = 0;
 			}
+
 			running = machine_cycle(machine);
 		}
 
