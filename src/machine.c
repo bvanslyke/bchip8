@@ -249,6 +249,10 @@ static void machine_font_address(struct machine *machine, int regX) {
 }
 
 static void machine_store_bcd(struct machine *machine, int regX) {
+	int regVal = machine->registers[regX];
+	machine->memory[machine->_address + 0] = (regVal % 1000) / 100;
+	machine->memory[machine->_address + 1] = (regVal % 100)  / 10;
+	machine->memory[machine->_address + 2] = (regVal % 10)   / 1;
 }
 
 static void machine_store_regs(struct machine *machine, int regX) {
@@ -276,103 +280,82 @@ static int op_nyb3(uint16_t op) { return (op & 0x000F) >> 0; }
 static int op_byte2(uint16_t op) { return op & 0x00FF; }
 static int op_address(uint16_t op) { return op & 0x0FFF; }
 
+static void dispatch8(struct machine *, uint16_t);
+static void dispatchE(struct machine *, uint16_t);
+static void dispatchF(struct machine *, uint16_t);
+
 #define PC_NEXT -1
 #define PC_END -2
 #define PC_JUMPED -3
+#define NEXT(foo) foo; return PC_NEXT;
+#define JUMP(foo) foo; return PC_JUMPED;
+
 int machine_dispatch(struct machine *mac, uint16_t op) {
-	int x,y;
-	if (op == 0x00E0) {
-		machine_clear_display(mac);
-		return PC_NEXT;
-	}
-	if (op == 0x00EE) {
-		machine_return(mac);
-		return PC_JUMPED;
-	}
+	if (op == 0x00E0) { NEXT( machine_clear_display(mac) ); }
+	if (op == 0x00EE) {	JUMP( machine_return(mac) ); }
+
 	switch (op_nyb0(op)) {
-	case 0:
-		return PC_END;
-	case 1:
-		machine_jump_to(mac, op_address(op));
-		return PC_JUMPED;
-	case 2:
-		machine_call(mac, op_address(op));
-		return PC_JUMPED;
-	case 3:
-		machine_skip_if_eq(mac, op_nyb1(op), op_byte2(op));
-		return PC_JUMPED;
-	case 4:
-		machine_skip_if_neq(mac, op_nyb1(op), op_byte2(op));
-		return PC_JUMPED;
-	case 5:
-		assert(op_nyb3(op) == 0);
-		machine_skip_if_regs_eq(mac, op_nyb1(op), op_nyb2(op));
-		return PC_JUMPED;
-	case 6:
-		machine_set_register(mac, op_nyb1(op), op_byte2(op));
-		return PC_NEXT;
-	case 7:
-		machine_add_to_register(mac, op_nyb1(op), op_byte2(op));
-		return PC_NEXT;
-	case 8:
-		x = op_nyb1(op);
-		y = op_nyb2(op);
-		switch (op_nyb3(op)) {
-		case 0: machine_copy_register(mac, x, y); break;
-		case 1:	machine_regs_or(mac, x, y); break;
-		case 2:	machine_regs_and(mac, x, y); break;
-		case 3:	machine_regs_xor(mac, x, y); break;
-		case 4:	machine_regs_addto(mac, x, y); break;
-		case 5:	machine_reg_subfrom(mac, x, y); break;
-		case 6:	machine_reg_rshift(mac, x, y); break;
-		case 7:	machine_reg_minus(mac, x, y); break;
-		case 0xE: machine_reg_lshift(mac, x, y); break;
-		default: assert(0);
-		}
-		return PC_NEXT;
-	case 9:
-		assert(op_nyb3(op) == 0);
-		machine_skip_if_regs_neq(mac, op_nyb1(op), op_nyb2(op));
-		return PC_JUMPED;
-	case 0xA:
-		machine_set_address(mac, op_address(op));
-		return PC_NEXT;
-	case 0xB:
-		machine_jump_plus(mac, op_address(op));
-		return PC_JUMPED;
-	case 0xC:
-		machine_set_random(mac, op_nyb1(op), op_byte2(op));
-		return PC_NEXT;
-	case 0xD:
-		machine_draw(mac, op_nyb1(op), op_nyb2(op), op_nyb3(op));
-		return PC_NEXT;
-	case 0xE:
-		if (op_byte2(op) == 0x9E) {
-			machine_skip_if_pressed(mac, op_nyb1(op));
-			return PC_JUMPED;
-		} else if (op_byte2(op) == 0xA1) {
-			machine_skip_if_unpressed(mac, op_nyb1(op));
-			return PC_JUMPED;
-		} else {
-			assert(0);
-		}
-	case 0xF:
-		x = op_nyb1(op);
-		switch (op_byte2(op)) {
-		case 0x07: machine_store_delay(mac, x); break;
-		case 0x0A: machine_wait_for_key(mac, x); break;
-		case 0x15: machine_set_delay_timer(mac, x); break;
-		case 0x18: machine_set_sound_timer(mac, x); break;
-		case 0x1E: machine_add_to_address(mac, x); break;
-		case 0x29: machine_font_address(mac, x); break;
-		case 0x33: machine_store_bcd(mac, x); break;
-		case 0x55: machine_store_regs(mac, x); break;
-		case 0x65: machine_load_regs(mac, x); break;
-		}
-		return PC_NEXT;
+	case 0x0: return PC_END;
+	case 0x1: JUMP( machine_jump_to(mac, op_address(op)) );
+	case 0x2: JUMP( machine_call(mac, op_address(op)) );
+	case 0x3: JUMP( machine_skip_if_eq(mac, op_nyb1(op), op_byte2(op)) );
+	case 0x4: JUMP( machine_skip_if_neq(mac, op_nyb1(op), op_byte2(op)) );
+	case 0x5: JUMP( machine_skip_if_regs_eq(mac, op_nyb1(op), op_nyb2(op)) );
+	case 0x6: NEXT( machine_set_register(mac, op_nyb1(op), op_byte2(op)) );
+	case 0x7: NEXT( machine_add_to_register(mac, op_nyb1(op), op_byte2(op)) );
+	case 0x8: NEXT( dispatch8(mac, op) );
+	case 0x9: JUMP( machine_skip_if_regs_neq(mac, op_nyb1(op), op_nyb2(op)) );
+	case 0xA: NEXT( machine_set_address(mac, op_address(op)) );
+	case 0xB: JUMP( machine_jump_plus(mac, op_address(op)) );
+	case 0xC: NEXT( machine_set_random(mac, op_nyb1(op), op_byte2(op)) );
+	case 0xD: NEXT( machine_draw(mac, op_nyb1(op), op_nyb2(op), op_nyb3(op)) );
+	case 0xE: JUMP( dispatchE(mac, op) );
+	case 0xF: NEXT( dispatchF(mac, op) );
 	default:
 		fprintf(stderr, "Unmatched op 0x%x. PC=0x%x/%d\n", op, mac->pc, mac->pc);
 		return 0;
+	}
+}
+
+static void dispatch8(struct machine *mac, uint16_t op) {
+	int x = op_nyb1(op);
+	int y = op_nyb2(op);
+	switch (op_nyb3(op)) {
+	case 0: machine_copy_register(mac, x, y); break;
+	case 1:	machine_regs_or(mac, x, y); break;
+	case 2:	machine_regs_and(mac, x, y); break;
+	case 3:	machine_regs_xor(mac, x, y); break;
+	case 4:	machine_regs_addto(mac, x, y); break;
+	case 5:	machine_reg_subfrom(mac, x, y); break;
+	case 6:	machine_reg_rshift(mac, x, y); break;
+	case 7:	machine_reg_minus(mac, x, y); break;
+	case 0xE: machine_reg_lshift(mac, x, y); break;
+	default: assert(0);
+	}
+}
+
+static void dispatchE(struct machine *mac, uint16_t op) {
+	if (op_byte2(op) == 0x9E) {
+		machine_skip_if_pressed(mac, op_nyb1(op));
+	} else if (op_byte2(op) == 0xA1) {
+		machine_skip_if_unpressed(mac, op_nyb1(op));
+	} else {
+		assert(0);
+	}
+}
+
+static void dispatchF(struct machine *mac, uint16_t op) {
+	int x = op_nyb1(op);
+	switch (op_byte2(op)) {
+	case 0x07: machine_store_delay(mac, x); break;
+	case 0x0A: machine_wait_for_key(mac, x); break;
+	case 0x15: machine_set_delay_timer(mac, x); break;
+	case 0x18: machine_set_sound_timer(mac, x); break;
+	case 0x1E: machine_add_to_address(mac, x); break;
+	case 0x29: machine_font_address(mac, x); break;
+	case 0x33: machine_store_bcd(mac, x); break;
+	case 0x55: machine_store_regs(mac, x); break;
+	case 0x65: machine_load_regs(mac, x); break;
 	}
 }
 

@@ -10,9 +10,14 @@ To run a Chip8 program you can either
 - Run `bin/bchip program.c8` where program.c8 is a binary file. Or
 - Run `scripts/runhex.sh [0xDE, 0xAD, 0xBE, 0xEF]` to run a program in the form of a hex string (e.g. the output of http://johnearnest.github.io/Octo/). This requires Haskell (for the moment) because it was faster for me to write this part in Haskell.
 
-
 The compile you need the development library for SDL2.
 
+Some of the example programs are from here: http://johnearnest.github.io/Octo/
+
+
+## Status
+
+The simulator mostly works. But it's still missing implementation of waitkey, bcd, and the timer instructions.
 
 ## MIT License
 

@@ -1,10 +1,6 @@
 
 /*
 TODO:
-  - make waitkey work
-  - fix bad performance
-  - bcd instruction
-  - font address instruction
   - delay and sound timers
 */
 
@@ -17,7 +13,6 @@ TODO:
 #include <SDL2/SDL.h>
 
 #include "machine.h"
-
 
 struct machine init_machine = {
 	.pc = PROGRAM_START,
@@ -188,6 +183,38 @@ int on_key(struct machine *machine, int stepping, int key) {
 	return 1;
 }
 
+void dispatch_keys(SDL_Event *e, struct machine *machine, int *stepping,
+				   int *running) {
+	if (e->type == SDL_KEYDOWN) {
+		switch (e->key.keysym.sym) {
+		case SDLK_TAB: *stepping = !*stepping; break;
+		case SDLK_ESCAPE: *running = 0; break;
+		case SDLK_SPACE:
+			if (*stepping && machine->waiting_for_key < 0) {
+				*running = machine_cycle(machine);
+			}
+			break;
+#define MAP_DOWN(key,val) case key: *running &= on_key(machine, *stepping, val); break;
+		MAP_DOWN(SDLK_1, 0x1); MAP_DOWN(SDLK_2, 0x2); MAP_DOWN(SDLK_3, 0x3);
+		MAP_DOWN(SDLK_4, 0xC); MAP_DOWN(SDLK_q, 0x4); MAP_DOWN(SDLK_w, 0x5);
+		MAP_DOWN(SDLK_e, 0x6); MAP_DOWN(SDLK_r, 0xD); MAP_DOWN(SDLK_a, 0x7);
+		MAP_DOWN(SDLK_s, 0x8); MAP_DOWN(SDLK_d, 0x9); MAP_DOWN(SDLK_f, 0xE);
+		MAP_DOWN(SDLK_z, 0xA); MAP_DOWN(SDLK_x, 0x0); MAP_DOWN(SDLK_c, 0xB);
+		MAP_DOWN(SDLK_v, 0xF);
+		}
+	} else if (e->type == SDL_KEYUP) {
+		switch (e->key.keysym.sym) {
+#define MAP_UP(key,val) case key: machine->keys[val] = 0; break;
+		MAP_UP(SDLK_1, 0x1); MAP_UP(SDLK_2, 0x2); MAP_UP(SDLK_3, 0x3);
+		MAP_UP(SDLK_4, 0xC); MAP_UP(SDLK_q, 0x4); MAP_UP(SDLK_w, 0x5);
+		MAP_UP(SDLK_e, 0x6); MAP_UP(SDLK_r, 0xD); MAP_UP(SDLK_a, 0x7);
+		MAP_UP(SDLK_s, 0x8); MAP_UP(SDLK_d, 0x9); MAP_UP(SDLK_f, 0xE);
+		MAP_UP(SDLK_z, 0xA); MAP_UP(SDLK_x, 0x0); MAP_UP(SDLK_c, 0xB);
+		MAP_UP(SDLK_v, 0xF);
+		}
+	}
+}
+
 int machine_loop(struct machine *machine, SDL_Renderer *renderer) {
 	int running = 1;
 	int stepping = 1;
@@ -202,55 +229,8 @@ int machine_loop(struct machine *machine, SDL_Renderer *renderer) {
 		while (SDL_PollEvent(&e)) {
 			if (e.type == SDL_QUIT){
 				running = 0;
-			} else if (e.type == SDL_KEYDOWN) {
-				switch (e.key.keysym.sym) {
-				case SDLK_TAB:
-					stepping = !stepping;
-					break;
-				case SDLK_SPACE:
-					if (stepping && machine->waiting_for_key < 0) {
-						running = machine_cycle(machine);
-					}
-					break;
-				case SDLK_ESCAPE:
-					running = 0;
-					break;
-				case SDLK_1: running &= on_key(machine, stepping, 0x1); break;
-				case SDLK_2: running &= on_key(machine, stepping, 0x2); break;
-				case SDLK_3: running &= on_key(machine, stepping, 0x3); break;
-				case SDLK_4: running &= on_key(machine, stepping, 0xC); break;
-				case SDLK_q: running &= on_key(machine, stepping, 0x4); break;
-				case SDLK_w: running &= on_key(machine, stepping, 0x5); break;
-				case SDLK_e: running &= on_key(machine, stepping, 0x6); break;
-				case SDLK_r: running &= on_key(machine, stepping, 0xD); break;
-				case SDLK_a: running &= on_key(machine, stepping, 0x7); break;
-				case SDLK_s: running &= on_key(machine, stepping, 0x8); break;
-				case SDLK_d: running &= on_key(machine, stepping, 0x9); break;
-				case SDLK_f: running &= on_key(machine, stepping, 0xE); break;
-				case SDLK_z: running &= on_key(machine, stepping, 0xA); break;
-				case SDLK_x: running &= on_key(machine, stepping, 0x0); break;
-				case SDLK_c: running &= on_key(machine, stepping, 0xB); break;
-				case SDLK_v: running &= on_key(machine, stepping, 0xF); break;
-				}
-			} else if (e.type == SDL_KEYUP) {
-				switch (e.key.keysym.sym) {
-				case SDLK_1: machine->keys[0x1] = 0; break;
-				case SDLK_2: machine->keys[0x2] = 0; break;
-				case SDLK_3: machine->keys[0x3] = 0; break;
-				case SDLK_4: machine->keys[0xC] = 0; break;
-				case SDLK_q: machine->keys[0x4] = 0; break;
-				case SDLK_w: machine->keys[0x5] = 0; break;
-				case SDLK_e: machine->keys[0x6] = 0; break;
-				case SDLK_r: machine->keys[0xD] = 0; break;
-				case SDLK_a: machine->keys[0x7] = 0; break;
-				case SDLK_s: machine->keys[0x8] = 0; break;
-				case SDLK_d: machine->keys[0x9] = 0; break;
-				case SDLK_f: machine->keys[0xE] = 0; break;
-				case SDLK_z: machine->keys[0xA] = 0; break;
-				case SDLK_x: machine->keys[0x0] = 0; break;
-				case SDLK_c: machine->keys[0xB] = 0; break;
-				case SDLK_v: machine->keys[0xF] = 0; break;
-				}
+			} else {
+				dispatch_keys(&e, machine, &stepping, &running);
 			}
 		}
 
@@ -268,10 +248,6 @@ int machine_loop(struct machine *machine, SDL_Renderer *renderer) {
 		if (refresh) {
 			SDL_RenderPresent(renderer);
 		}
-
-
-		//SDL_Delay(1);
-		//if (machine->cycles > max_cycles) running = 0;
 	}
 	return 0;
 }
@@ -300,8 +276,6 @@ int main(int argc, char *argv[]) {
 				&window, &renderer);
 
 	machine_loop(&machine, renderer);
-
-	printf("Cycles: %d\n", machine.cycles);
 
 	SDL_DestroyWindow(window);
 	SDL_Quit();
