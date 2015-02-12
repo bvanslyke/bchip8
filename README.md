@@ -8,7 +8,7 @@ You can enable/disable the debugger by hitting tab, where you can step forward t
 To run a Chip8 program you can either
 
 - Run `bin/bchip program.c8` where program.c8 is a binary file. Or
-- Run `runhaskell scripts/runhex.sh [0xDE, 0xAD, 0xBE, 0xEF]` to run a program in the form of a hex string (e.g. the output of http://johnearnest.github.io/Octo/).
+- Run `scripts/runhex.sh [0xDE, 0xAD, 0xBE, 0xEF]` to run a program in the form of a hex string (e.g. the output of http://johnearnest.github.io/Octo/).
 
 To compile you need the development library for SDL2.
 
